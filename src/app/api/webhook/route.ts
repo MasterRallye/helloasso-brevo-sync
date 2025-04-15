@@ -1,45 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server'
-import axios from 'axios'
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET() {
+  return NextResponse.json({ success: true, message: "Webhook opérationnel" });
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await req.json();
 
-    const firstName = body?.payer?.firstName || ''
-    const lastName = body?.payer?.lastName || ''
-    const email = body?.payer?.email || ''
-    const phone = body?.payer?.phone || ''
-    const birthdate = body?.payer?.birthDate || ''
-    const eventName = body?.event?.name || 'Événement inconnu'
+    // ⬇️ C’est ce qu’on veut afficher dans les logs Vercel
+    console.log("📨 Données brutes HelloAsso :", JSON.stringify(body, null, 2));
 
-    const brevoApiKey = process.env.BREVO_API_KEY as string
-
-    await axios.post(
-      'https://api.brevo.com/v3/contacts',
-      {
-        email,
-        attributes: {
-          FIRSTNAME: firstName,
-          LASTNAME: lastName,
-          PHONE: phone,
-          BIRTHDATE: birthdate,
-          EVENT: eventName,
-        },
-        updateEnabled: true,
-        listIds: [/* à compléter plus tard */],
-      },
-      {
-        headers: {
-          'api-key': brevoApiKey,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Erreur webhook HelloAsso → Brevo', error)
-    return NextResponse.json({ success: false, error: 'Erreur interne' }, { status: 500 })
+    console.error("❌ Erreur de traitement :", error);
+    return NextResponse.json({ success: false, error: "Erreur interne" }, { status: 500 });
   }
 }
- 

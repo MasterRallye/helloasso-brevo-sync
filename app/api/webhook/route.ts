@@ -57,15 +57,16 @@ export async function POST(req: NextRequest) {
     const email = payer.email?.trim().toLowerCase()
     const tag = data.formSlug
 
-    // ✅ Typage propre
+    const headers = {
+      'api-key': BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    }
+
+    // ✅ Récupération du contact existant
     let existingContact: { attributes?: Record<string, string> } = {}
     try {
-      const res = await axios.get(`${BREVO_BASE_URL}/${email}`, {
-        headers: {
-          'api-key': BREVO_API_KEY,
-          'Content-Type': 'application/json',
-        },
-      })
+      const res = await axios.get(`${BREVO_BASE_URL}/${email}`, { headers })
       existingContact = res.data
     } catch {
       existingContact = {}
@@ -101,20 +102,25 @@ export async function POST(req: NextRequest) {
       FILLEUL_3: mergeValues(existingContact?.attributes?.FILLEUL_3, newFilleul3),
     }
 
+    // ✅ Vérification du numéro avant de l'ajouter
     if (phone && phone.match(/^\+33\d{9}$/)) {
-      attributes.SMS = phone
+      try {
+        const smsCheck = await axios.get(`${BREVO_BASE_URL}?sms=${encodeURIComponent(phone)}`, { headers })
+        const found = smsCheck.data.contacts?.[0]
+        if (!found || found.email === email) {
+          attributes.SMS = phone
+        } else {
+          console.warn(`📵 Le numéro ${phone} est déjà associé à ${found.email}, SMS ignoré`)
+        }
+      } catch (err) {
+        console.warn('🔍 Vérification du numéro échouée, SMS ignoré', err)
+      }
     }
 
     console.log('📨 Données HelloAsso formatées :', {
       email,
       attributes
     })
-
-    const headers = {
-      'api-key': BREVO_API_KEY,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    }
 
     await axios.post(
       BREVO_BASE_URL,

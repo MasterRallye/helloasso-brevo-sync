@@ -27,73 +27,28 @@ export async function POST(req: NextRequest) {
     const data = body.data
     const payer = data.payer
     const item = data.items?.[0]
-    const customFields = item?.customFields || {}
 
+    // 🟡 LOGS DÉTAILLÉS POUR ANALYSE
+    console.log('🔍 CLÉS DE data :', Object.keys(data))
+    console.log('🔍 CONTENU DE item :', JSON.stringify(item, null, 2))
+
+    // Log minimum
     const email = payer.email?.trim().toLowerCase()
     const prenom = capitalize(item?.user?.firstName || payer.firstName || '')
     const nom = upper(item?.user?.lastName || payer.lastName || '')
 
-    const rawPhone = customFields['Numéro de téléphone'] || ''
-    const phone = rawPhone ? formatPhone(rawPhone) : undefined
-
-    const dateNaissance = customFields['Date de naissance'] || ''
-    const codePromo = item?.discount?.code || ''
-    const montantCodePromo = formatAmount(item?.discount?.amount || 0)
-    const prixBillet = formatAmount(item?.initialAmount || 0)
-
-    const parrain = capitalize(customFields['Parrain'] || '')
-    const filleul1 = capitalize(customFields['Filleul 1'] || '')
-    const filleul2 = capitalize(customFields['Filleul 2'] || '')
-    const filleul3 = capitalize(customFields['Filleul 3'] || '')
-
     const tag = data.formSlug
 
-    const attributes: Record<string, string> = {
-      PRENOM: prenom,
-      NOM: nom,
-      DATE_NAISSANCE: dateNaissance,
-      CODE_PROMO: codePromo,
-      MONTANT_CODE_PROMO: montantCodePromo,
-      PRIX_BILLET: prixBillet,
-      PARRAIN: parrain,
-      FILLEUL_1: filleul1,
-      FILLEUL_2: filleul2,
-      FILLEUL_3: filleul3,
-    }
-
-    if (phone) {
-      attributes.SMS = phone
-    }
-
-    console.log('📨 Données HelloAsso formatées :', {
+    console.log('📩 Contact traité sans insertion (test)', {
       email,
-      attributes,
+      prenom,
+      nom,
       tag
     })
 
-    const headers = {
-      'api-key': BREVO_API_KEY,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    }
-
-    await axios.post(
-      BREVO_BASE_URL,
-      {
-        email,
-        attributes,
-        updateEnabled: true,
-        listIds: [],
-        updateEnabledSms: true,
-        tags: [tag],
-      },
-      { headers }
-    )
-
-    console.log(`✅ Contact ${email} ajouté ou mis à jour avec succès.`)
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, message: 'Log envoyé avec succès' })
   } catch (error) {
-    console.error('❌ Erreur webhook HelloAsso → Brevo :', error)
+    console.error('❌ Erreur analyse HelloAsso :', error)
     return NextResponse.json({ success: false, error: 'Erreur interne' }, { status: 500 })
   }
 }

@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
     const payer = data.payer
     const item = data.items?.[0]
 
+    // 🔍 Ajout du log des clés de données reçues
+    console.log("🔍 Clés reçues depuis HelloAsso :", Object.keys(data))
+
     const email = payer.email?.trim().toLowerCase()
     const prenom = capitalize(item?.user?.firstName || payer.firstName || '')
     const nom = upper(item?.user?.lastName || payer.lastName || '')

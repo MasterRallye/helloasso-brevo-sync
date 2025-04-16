@@ -21,6 +21,14 @@ function formatAmount(amount: number) {
   return (amount / 100).toFixed(2).replace('.', ',') + '€'
 }
 
+// 🔐 Nettoie les champs texte : supprime ' " et autres caractères spéciaux
+function safeText(str: string): string {
+  return str
+    .replace(/['"]/g, '') // enlève ' et "
+    .replace(/[^\w\sÀ-ÿ-]/g, '') // enlève caractères spéciaux
+    .trim()
+}
+
 type CustomField = { name: string; answer: string }
 
 function extractCustomFields(customFieldsArray: CustomField[]) {
@@ -42,8 +50,8 @@ export async function POST(req: NextRequest) {
     const rawCustomFields = extractCustomFields(item?.customFields || [])
 
     const email = payer.email?.trim().toLowerCase()
-    const prenom = capitalize(item?.user?.firstName || payer.firstName || '')
-    const nom = upper(item?.user?.lastName || payer.lastName || '')
+    const prenom = safeText(capitalize(item?.user?.firstName || payer.firstName || ''))
+    const nom = safeText(upper(item?.user?.lastName || payer.lastName || ''))
 
     const rawPhone = rawCustomFields['Numéro de téléphone'] || ''
     const phone = rawPhone ? formatPhone(rawPhone) : undefined
@@ -53,10 +61,10 @@ export async function POST(req: NextRequest) {
     const montantCodePromo = formatAmount(item?.discount?.amount || 0)
     const prixBillet = formatAmount(item?.initialAmount || 0)
 
-    const parrain = capitalize(rawCustomFields['Parrain'] || '')
-    const filleul1 = capitalize(rawCustomFields['Filleul 1'] || '')
-    const filleul2 = capitalize(rawCustomFields['Filleul 2'] || '')
-    const filleul3 = capitalize(rawCustomFields['Filleul 3'] || '')
+    const parrain = safeText(capitalize(rawCustomFields['Parrain'] || ''))
+    const filleul1 = safeText(capitalize(rawCustomFields['Filleul 1'] || ''))
+    const filleul2 = safeText(capitalize(rawCustomFields['Filleul 2'] || ''))
+    const filleul3 = safeText(capitalize(rawCustomFields['Filleul 3'] || ''))
 
     const tag = data.formSlug
 
@@ -71,7 +79,7 @@ export async function POST(req: NextRequest) {
       FILLEUL_1: filleul1,
       FILLEUL_2: filleul2,
       FILLEUL_3: filleul3,
-      TAG: tag, // ← nouvel attribut ajouté
+      TAG: tag,
     }
 
     if (phone && phone.match(/^\+33\d{9}$/)) {
@@ -98,7 +106,6 @@ export async function POST(req: NextRequest) {
         updateEnabled: true,
         listIds: [],
         updateEnabledSms: true,
-        // tags: [tag], // supprimé
       },
       { headers }
     )
@@ -106,7 +113,11 @@ export async function POST(req: NextRequest) {
     console.log(`✅ Contact ${email} ajouté ou mis à jour avec succès.`)
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('❌ Erreur webhook HelloAsso → Brevo :', error)
+    if (axios.isAxiosError(error)) {
+      console.error('❌ Brevo a répondu :', error.response?.data)
+    } else {
+      console.error('❌ Erreur webhook HelloAsso → Brevo :', error)
+    }
     return NextResponse.json({ success: false, error: 'Erreur interne' }, { status: 500 })
   }
 }

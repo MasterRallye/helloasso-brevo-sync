@@ -57,18 +57,17 @@ export async function POST(req: NextRequest) {
     const email = payer.email?.trim().toLowerCase()
     const tag = data.formSlug
 
-    // ✅ Étape 1 : récupérer les infos existantes
-    const headers = {
-      'api-key': BREVO_API_KEY,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    }
-
-    let existingContact: any = {}
+    // ✅ Typage propre
+    let existingContact: { attributes?: Record<string, string> } = {}
     try {
-      const res = await axios.get(`${BREVO_BASE_URL}/${email}`, { headers })
+      const res = await axios.get(`${BREVO_BASE_URL}/${email}`, {
+        headers: {
+          'api-key': BREVO_API_KEY,
+          'Content-Type': 'application/json',
+        },
+      })
       existingContact = res.data
-    } catch (e) {
+    } catch {
       existingContact = {}
     }
 
@@ -110,6 +109,12 @@ export async function POST(req: NextRequest) {
       email,
       attributes
     })
+
+    const headers = {
+      'api-key': BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    }
 
     await axios.post(
       BREVO_BASE_URL,

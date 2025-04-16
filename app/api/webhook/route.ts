@@ -14,23 +14,11 @@ function upper(str: string) {
 
 function formatPhone(phone: string) {
   const cleaned = phone.replace(/\D/g, '')
-  return cleaned.startsWith('0') ? '+33' + cleaned.slice(1) : '+33' + cleaned
+  return cleaned.startsWith('0') ? '33' + cleaned.slice(1) : '33' + cleaned
 }
 
 function formatAmount(amount: number) {
   return (amount / 100).toFixed(2).replace('.', ',') + '€'
-}
-
-type CustomField = { name: string; answer: string }
-
-function extractCustomFields(customFieldsArray: CustomField[]) {
-  const customFields: Record<string, string> = {}
-  customFieldsArray?.forEach((entry) => {
-    if (entry.name && entry.answer) {
-      customFields[entry.name] = entry.answer
-    }
-  })
-  return customFields
 }
 
 export async function POST(req: NextRequest) {
@@ -39,24 +27,23 @@ export async function POST(req: NextRequest) {
     const data = body.data
     const payer = data.payer
     const item = data.items?.[0]
-    const rawCustomFields = extractCustomFields(item?.customFields || [])
 
     const email = payer.email?.trim().toLowerCase()
     const prenom = capitalize(item?.user?.firstName || payer.firstName || '')
     const nom = upper(item?.user?.lastName || payer.lastName || '')
 
-    const rawPhone = rawCustomFields['Numéro de téléphone'] || ''
+    const rawPhone = data.phone || ''
     const phone = rawPhone ? formatPhone(rawPhone) : undefined
 
-    const dateNaissance = rawCustomFields['Date de naissance'] || ''
+    const dateNaissance = data.customFields?.date_naissance || ''
     const codePromo = item?.discount?.code || ''
     const montantCodePromo = formatAmount(item?.discount?.amount || 0)
     const prixBillet = formatAmount(item?.initialAmount || 0)
 
-    const parrain = capitalize(rawCustomFields['Parrain'] || '')
-    const filleul1 = capitalize(rawCustomFields['Filleul 1'] || '')
-    const filleul2 = capitalize(rawCustomFields['Filleul 2'] || '')
-    const filleul3 = capitalize(rawCustomFields['Filleul 3'] || '')
+    const parrain = capitalize(data['Parrain'] || data['Nom de votre parrain'] || '')
+    const filleul1 = capitalize(data['Nom de votre filleul'] || data['Filleul'] || data['Filleul 1'] || '')
+    const filleul2 = capitalize(data['Filleul 2'] || '')
+    const filleul3 = capitalize(data['Filleul 3'] || '')
 
     const tag = data.formSlug
 
@@ -71,16 +58,16 @@ export async function POST(req: NextRequest) {
       FILLEUL_1: filleul1,
       FILLEUL_2: filleul2,
       FILLEUL_3: filleul3,
+      TAG: tag, // ← pour retrouver à quelle édition appartient le contact
     }
 
-    if (phone && phone.match(/^\+33\d{9}$/)) {
+    if (phone) {
       attributes.SMS = phone
     }
 
     console.log('📨 Données HelloAsso formatées :', {
       email,
-      attributes,
-      tag
+      attributes
     })
 
     const headers = {
@@ -97,7 +84,6 @@ export async function POST(req: NextRequest) {
         updateEnabled: true,
         listIds: [],
         updateEnabledSms: true,
-        tags: [tag],
       },
       { headers }
     )

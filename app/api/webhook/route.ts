@@ -76,8 +76,8 @@ export async function POST(req: NextRequest) {
       Accept: 'application/json',
     }
 
-    await axios.put(
-      `${BREVO_BASE_URL}/${email}`,
+    await axios.post(
+      BREVO_BASE_URL,
       {
         email,
         attributes,

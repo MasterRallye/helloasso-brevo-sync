@@ -14,14 +14,13 @@ function upper(str: string) {
 
 function formatPhone(phone: string) {
   const cleaned = phone.replace(/\D/g, '')
-  return cleaned.startsWith('0') ? '33' + cleaned.slice(1) : '33' + cleaned
+  return cleaned.startsWith('0') ? '+33' + cleaned.slice(1) : '+33' + cleaned
 }
 
 function formatAmount(amount: number) {
   return (amount / 100).toFixed(2).replace('.', ',') + '€'
 }
 
-// ✅ Typage propre ici
 type CustomField = { name: string; answer: string }
 
 function extractCustomFields(customFieldsArray: CustomField[]) {
@@ -74,7 +73,7 @@ export async function POST(req: NextRequest) {
       FILLEUL_3: filleul3,
     }
 
-    if (phone) {
+    if (phone && phone.match(/^\+33\d{9}$/)) {
       attributes.SMS = phone
     }
 

@@ -21,11 +21,10 @@ function formatAmount(amount: number) {
   return (amount / 100).toFixed(2).replace('.', ',') + '€'
 }
 
-// 🔐 Nettoie les champs texte : supprime ' " et autres caractères spéciaux
 function safeText(str: string): string {
   return str
-    .replace(/['"]/g, '') // enlève ' et "
-    .replace(/[^\w\sÀ-ÿ-]/g, '') // enlève caractères spéciaux
+    .replace(/['"]/g, '')
+    .replace(/[^\w\sÀ-ÿ-]/g, '')
     .trim()
 }
 
@@ -41,6 +40,13 @@ function extractCustomFields(customFieldsArray: CustomField[]) {
   return customFields
 }
 
+function mergeValues(existing: string | undefined, incoming: string): string {
+  if (!existing) return incoming
+  const values = existing.split(',').map(v => v.trim())
+  if (values.includes(incoming)) return existing
+  return [...values, incoming].join(', ')
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -48,8 +54,24 @@ export async function POST(req: NextRequest) {
     const payer = data.payer
     const item = data.items?.[0]
     const rawCustomFields = extractCustomFields(item?.customFields || [])
-
     const email = payer.email?.trim().toLowerCase()
+    const tag = data.formSlug
+
+    // ✅ Étape 1 : récupérer les infos existantes
+    const headers = {
+      'api-key': BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    }
+
+    let existingContact: any = {}
+    try {
+      const res = await axios.get(`${BREVO_BASE_URL}/${email}`, { headers })
+      existingContact = res.data
+    } catch (e) {
+      existingContact = {}
+    }
+
     const prenom = safeText(capitalize(item?.user?.firstName || payer.firstName || ''))
     const nom = safeText(upper(item?.user?.lastName || payer.lastName || ''))
 
@@ -61,12 +83,10 @@ export async function POST(req: NextRequest) {
     const montantCodePromo = formatAmount(item?.discount?.amount || 0)
     const prixBillet = formatAmount(item?.initialAmount || 0)
 
-    const parrain = safeText(capitalize(rawCustomFields['Parrain'] || ''))
-    const filleul1 = safeText(capitalize(rawCustomFields['Filleul 1'] || ''))
-    const filleul2 = safeText(capitalize(rawCustomFields['Filleul 2'] || ''))
-    const filleul3 = safeText(capitalize(rawCustomFields['Filleul 3'] || ''))
-
-    const tag = data.formSlug
+    const newParrain = safeText(capitalize(rawCustomFields['Parrain'] || ''))
+    const newFilleul1 = safeText(capitalize(rawCustomFields['Filleul 1'] || ''))
+    const newFilleul2 = safeText(capitalize(rawCustomFields['Filleul 2'] || ''))
+    const newFilleul3 = safeText(capitalize(rawCustomFields['Filleul 3'] || ''))
 
     const attributes: Record<string, string> = {
       PRENOM: prenom,
@@ -75,11 +95,11 @@ export async function POST(req: NextRequest) {
       CODE_PROMO: codePromo,
       MONTANT_CODE_PROMO: montantCodePromo,
       PRIX_BILLET: prixBillet,
-      PARRAIN: parrain,
-      FILLEUL_1: filleul1,
-      FILLEUL_2: filleul2,
-      FILLEUL_3: filleul3,
-      TAG: tag,
+      TAG: mergeValues(existingContact?.attributes?.TAG, tag),
+      PARRAIN: mergeValues(existingContact?.attributes?.PARRAIN, newParrain),
+      FILLEUL_1: mergeValues(existingContact?.attributes?.FILLEUL_1, newFilleul1),
+      FILLEUL_2: mergeValues(existingContact?.attributes?.FILLEUL_2, newFilleul2),
+      FILLEUL_3: mergeValues(existingContact?.attributes?.FILLEUL_3, newFilleul3),
     }
 
     if (phone && phone.match(/^\+33\d{9}$/)) {
@@ -88,15 +108,8 @@ export async function POST(req: NextRequest) {
 
     console.log('📨 Données HelloAsso formatées :', {
       email,
-      attributes,
-      tag
+      attributes
     })
-
-    const headers = {
-      'api-key': BREVO_API_KEY,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    }
 
     await axios.post(
       BREVO_BASE_URL,

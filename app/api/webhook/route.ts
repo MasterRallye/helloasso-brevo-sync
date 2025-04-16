@@ -5,12 +5,17 @@ const BREVO_API_KEY = process.env.BREVO_API_KEY
 const BREVO_BASE_URL = 'https://api.brevo.com/v3/contacts'
 
 function capitalize(str: string) {
+  if (!str) return ''
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
+
+function upper(str: string) {
+  return str?.toUpperCase() || ''
 }
 
 function formatPhone(phone: string) {
   const cleaned = phone.replace(/\D/g, '')
-  return cleaned.startsWith('0') ? '+33' + cleaned.slice(1) : '+33' + cleaned
+  return cleaned.startsWith('0') ? '33' + cleaned.slice(1) : '33' + cleaned
 }
 
 function formatAmount(amount: number) {
@@ -24,34 +29,35 @@ export async function POST(req: NextRequest) {
     const payer = data.payer
     const item = data.items?.[0]
 
-    const email = payer.email.toLowerCase()
-    const firstName = capitalize(item?.user?.firstName || payer.firstName)
-    const lastName = (item?.user?.lastName || payer.lastName)?.toUpperCase()
+    const email = payer.email?.trim().toLowerCase()
+    const prenom = capitalize(item?.user?.firstName || payer.firstName || '')
+    const nom = upper(item?.user?.lastName || payer.lastName || '')
     const phone = formatPhone(data.phone || '')
+
     const dateNaissance = data.customFields?.date_naissance || ''
     const codePromo = item?.discount?.code || ''
     const montantCodePromo = formatAmount(item?.discount?.amount || 0)
     const prixBillet = formatAmount(item?.initialAmount || 0)
 
-    const filleul1 = data['Nom de votre filleul'] || data['Filleul'] || data['Filleul 1'] || ''
-    const filleul2 = data['Filleul 2'] || ''
-    const filleul3 = data['Filleul 3'] || ''
-    const parrain = data['Parrain'] || data['Nom de votre parrain'] || ''
+    const parrain = capitalize(data['Parrain'] || data['Nom de votre parrain'] || '')
+    const filleul1 = capitalize(data['Nom de votre filleul'] || data['Filleul'] || data['Filleul 1'] || '')
+    const filleul2 = capitalize(data['Filleul 2'] || '')
+    const filleul3 = capitalize(data['Filleul 3'] || '')
 
     const tag = data.formSlug
 
     const attributes = {
-      PRENOM: firstName,
-      NOM: lastName,
+      PRENOM: prenom,
+      NOM: nom,
       SMS: phone,
       DATE_NAISSANCE: dateNaissance,
       CODE_PROMO: codePromo,
       MONTANT_CODE_PROMO: montantCodePromo,
       PRIX_BILLET: prixBillet,
+      PARRAIN: parrain,
       FILLEUL_1: filleul1,
       FILLEUL_2: filleul2,
       FILLEUL_3: filleul3,
-      PARRAIN: parrain,
     }
 
     console.log('📨 Données HelloAsso formatées :', {

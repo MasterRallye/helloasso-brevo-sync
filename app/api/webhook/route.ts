@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
     const filleul1 = data['Nom de votre filleul'] || data['Filleul'] || data['Filleul 1'] || ''
     const filleul2 = data['Filleul 2'] || ''
     const filleul3 = data['Filleul 3'] || ''
+    const parrain = data['Parrain'] || data['Nom de votre parrain'] || ''
 
     const tag = data.formSlug
 
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
       FILLEUL_1: filleul1,
       FILLEUL_2: filleul2,
       FILLEUL_3: filleul3,
+      PARRAIN: parrain,
     }
 
     console.log('📨 Données HelloAsso formatées :', {
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest) {
         email,
         attributes,
         updateEnabled: true,
-        listIds: [], // tu peux ajouter des listes ici si besoin
+        listIds: [],
         updateEnabledSms: true,
         tags: [tag],
       },

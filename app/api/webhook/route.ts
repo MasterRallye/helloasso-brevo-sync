@@ -21,8 +21,10 @@ function formatAmount(amount: number) {
   return (amount / 100).toFixed(2).replace('.', ',') + '€'
 }
 
-// Convertit item.customFields (tableau) → objet clé: valeur
-function extractCustomFields(customFieldsArray: any[]) {
+// ✅ Typage propre ici
+type CustomField = { name: string; answer: string }
+
+function extractCustomFields(customFieldsArray: CustomField[]) {
   const customFields: Record<string, string> = {}
   customFieldsArray?.forEach((entry) => {
     if (entry.name && entry.answer) {

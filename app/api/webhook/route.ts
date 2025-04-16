@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     const tag = data.formSlug
 
-    const attributes: any = {
+    const attributes: Record<string, string> = {
       PRENOM: prenom,
       NOM: nom,
       DATE_NAISSANCE: dateNaissance,

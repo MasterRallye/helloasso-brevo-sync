@@ -27,26 +27,24 @@ export async function POST(req: NextRequest) {
     const data = body.data
     const payer = data.payer
     const item = data.items?.[0]
-
-    // 🔍 Ajout du log des clés de données reçues
-    console.log("🔍 Clés reçues depuis HelloAsso :", Object.keys(data))
+    const customFields = item?.customFields || {}
 
     const email = payer.email?.trim().toLowerCase()
     const prenom = capitalize(item?.user?.firstName || payer.firstName || '')
     const nom = upper(item?.user?.lastName || payer.lastName || '')
 
-    const rawPhone = data.phone || ''
+    const rawPhone = customFields['Numéro de téléphone'] || ''
     const phone = rawPhone ? formatPhone(rawPhone) : undefined
 
-    const dateNaissance = data.customFields?.date_naissance || ''
+    const dateNaissance = customFields['Date de naissance'] || ''
     const codePromo = item?.discount?.code || ''
     const montantCodePromo = formatAmount(item?.discount?.amount || 0)
     const prixBillet = formatAmount(item?.initialAmount || 0)
 
-    const parrain = capitalize(data['Parrain'] || data['Nom de votre parrain'] || '')
-    const filleul1 = capitalize(data['Nom de votre filleul'] || data['Filleul'] || data['Filleul 1'] || '')
-    const filleul2 = capitalize(data['Filleul 2'] || '')
-    const filleul3 = capitalize(data['Filleul 3'] || '')
+    const parrain = capitalize(customFields['Parrain'] || '')
+    const filleul1 = capitalize(customFields['Filleul 1'] || '')
+    const filleul2 = capitalize(customFields['Filleul 2'] || '')
+    const filleul3 = capitalize(customFields['Filleul 3'] || '')
 
     const tag = data.formSlug
 

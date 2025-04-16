@@ -5,8 +5,7 @@ const BREVO_API_KEY = process.env.BREVO_API_KEY
 const BREVO_BASE_URL = 'https://api.brevo.com/v3/contacts'
 
 function capitalize(str: string) {
-  if (!str) return ''
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+  return str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : ''
 }
 
 function upper(str: string) {
@@ -32,7 +31,9 @@ export async function POST(req: NextRequest) {
     const email = payer.email?.trim().toLowerCase()
     const prenom = capitalize(item?.user?.firstName || payer.firstName || '')
     const nom = upper(item?.user?.lastName || payer.lastName || '')
-    const phone = formatPhone(data.phone || '')
+
+    const rawPhone = data.phone || ''
+    const phone = rawPhone ? formatPhone(rawPhone) : undefined
 
     const dateNaissance = data.customFields?.date_naissance || ''
     const codePromo = item?.discount?.code || ''
@@ -46,10 +47,9 @@ export async function POST(req: NextRequest) {
 
     const tag = data.formSlug
 
-    const attributes = {
+    const attributes: any = {
       PRENOM: prenom,
       NOM: nom,
-      SMS: phone,
       DATE_NAISSANCE: dateNaissance,
       CODE_PROMO: codePromo,
       MONTANT_CODE_PROMO: montantCodePromo,
@@ -58,6 +58,10 @@ export async function POST(req: NextRequest) {
       FILLEUL_1: filleul1,
       FILLEUL_2: filleul2,
       FILLEUL_3: filleul3,
+    }
+
+    if (phone) {
+      attributes.SMS = phone
     }
 
     console.log('📨 Données HelloAsso formatées :', {

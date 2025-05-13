@@ -72,6 +72,8 @@ export async function POST(req: NextRequest) {
       existingContact = {}
     }
 
+    const existing = existingContact?.attributes || {}
+
     const prenom = safeText(capitalize(item?.user?.firstName || payer.firstName || ''))
     const nom = safeText(upper(item?.user?.lastName || payer.lastName || ''))
 
@@ -80,7 +82,6 @@ export async function POST(req: NextRequest) {
 
     const dateNaissance = rawCustomFields['Date de naissance'] || ''
     const codePromo = item?.discount?.code || ''
-    const montantCodePromo = formatAmount(item?.discount?.amount || 0)
     const prixBillet = formatAmount(item?.initialAmount || 0)
 
     const newParrain = safeText(capitalize(rawCustomFields['Parrain'] || ''))
@@ -88,19 +89,25 @@ export async function POST(req: NextRequest) {
     const newFilleul2 = safeText(capitalize(rawCustomFields['Filleul 2'] || ''))
     const newFilleul3 = safeText(capitalize(rawCustomFields['Filleul 3'] || ''))
 
-    const attributes: Record<string, string> = {
-      PRENOM: prenom,
-      NOM: nom,
-      DATE_NAISSANCE: dateNaissance,
-      CODE_PROMO: codePromo,
-      MONTANT_CODE_PROMO: montantCodePromo,
-      PRIX_BILLET: prixBillet,
-      TAG: mergeValues(existingContact?.attributes?.TAG, tag),
-      PARRAIN: mergeValues(existingContact?.attributes?.PARRAIN, newParrain),
-      FILLEUL_1: mergeValues(existingContact?.attributes?.FILLEUL_1, newFilleul1),
-      FILLEUL_2: mergeValues(existingContact?.attributes?.FILLEUL_2, newFilleul2),
-      FILLEUL_3: mergeValues(existingContact?.attributes?.FILLEUL_3, newFilleul3),
+    const attributes: Record<string, string> = {}
+
+    // 📌 Fixer le prénom/nom à la première valeur connue
+    if (!existing.PRENOM) attributes.PRENOM = prenom
+    if (!existing.NOM) attributes.NOM = nom
+
+    // ✅ Ajouter la date de naissance uniquement si absente
+    if (!existing.DATE_NAISSANCE && dateNaissance) {
+      attributes.DATE_NAISSANCE = dateNaissance
     }
+
+    // ✅ Cumuler les champs multiples
+    attributes.CODE_PROMO = mergeValues(existing.CODE_PROMO, codePromo)
+    attributes.PRIX_BILLET = mergeValues(existing.PRIX_BILLET, prixBillet)
+    attributes.TAG = mergeValues(existing.TAG, tag)
+    attributes.PARRAIN = mergeValues(existing.PARRAIN, newParrain)
+    attributes.FILLEUL_1 = mergeValues(existing.FILLEUL_1, newFilleul1)
+    attributes.FILLEUL_2 = mergeValues(existing.FILLEUL_2, newFilleul2)
+    attributes.FILLEUL_3 = mergeValues(existing.FILLEUL_3, newFilleul3)
 
     // ✅ Vérification du numéro avant de l'ajouter
     if (phone && phone.match(/^\+33\d{9}$/)) {
